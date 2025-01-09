@@ -12,28 +12,16 @@ export const getMovieById = asyncHandler(async (req, res) => {
 
   if (!movieId) throw new Error("movieId required");
 
-  const query = `
-    SELECT m.*,
-    JSON_ARRAYAGG(
-        JSON_OBJECT(
-            'id', r.id,
-            'name', r.name,
-            'vote', r.vote,
-            'text', r.text,
-            'created_at', r.created_at,
-            'updated_at', r.updated_at
-        )
-    ) AS reviews
-    FROM movies AS m
-    LEFT JOIN reviews AS r ON m.id = r.movie_id
-    WHERE m.id = ?
-    GROUP BY m.id;
+  const movieQuery = db.query("SELECT * FROM movies WHERE id = ?", [movieId]);
+  const reviewsQuery = db.query("SELECT * FROM reviews WHERE movie_id = ?", [
+    movieId,
+  ]);
 
-  `;
-  const [results] = await db.query(query, [movieId]);
-  if (!results.length) {
+  const [[[movie]], [reviews]] = await Promise.all([movieQuery, reviewsQuery]);
+
+  if (!movie) {
     res.status(404);
     throw new Error("Movie not found");
   }
-  res.status(200).json(results);
+  res.status(200).json({ ...movie, reviews });
 });
