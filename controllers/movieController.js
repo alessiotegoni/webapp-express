@@ -61,9 +61,9 @@ export const getMovieById = asyncHandler(async (req, res) => {
 
 export const createReview = asyncHandler(async (req, res) => {
   const { id: movieId } = req.params;
-  const { username, review, vote } = req.body;
+  const { name, text, vote } = req.body;
 
-  if (!movieId || !username || !review || !vote)
+  if (!movieId || !name || !text || !vote || isNaN(vote))
     throw new Error("All fields are required");
 
   const [[movie]] = await db.query("SELECT id FROM movies WHERE id = ?", [
@@ -75,10 +75,12 @@ export const createReview = asyncHandler(async (req, res) => {
   const [result] = await db.query(
     `INSERT INTO reviews (movie_id, name, vote, text)
     VALUES (?, ?, ?, ?)`,
-    [movie.id, username, vote, review]
+    [movie.id, name, vote, text]
   );
 
   if (!result.affectedRows) throw new Error("Error creating the review");
 
-  res.status(201).json({ message: "Review created!" });
+  res
+    .status(201)
+    .json({ message: "Review created!", insertId: result.insertId });
 });
