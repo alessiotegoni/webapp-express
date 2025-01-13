@@ -58,3 +58,27 @@ export const getMovieById = asyncHandler(async (req, res) => {
     .status(200)
     .json({ ...movie, image: getImageUrl(movie.image), reviews, avgVote });
 });
+
+export const createReview = asyncHandler(async (req, res) => {
+  const { id: movieId } = req.params;
+  const { username, review, vote } = req.body;
+
+  if (!movieId || !username || !review || !vote)
+    throw new Error("All fields are required");
+
+  const [[movie]] = await db.query("SELECT id FROM movies WHERE id = ?", [
+    movieId,
+  ]);
+
+  if (!movie?.id) throw new Error("Movie not found");
+
+  const [result] = await db.query(
+    `INSERT INTO reviews (movie_id, name, vote, text)
+    VALUES (?, ?, ?, ?)`,
+    [movie.id, username, vote, review]
+  );
+
+  if (!result.affectedRows) throw new Error("Error creating the review");
+
+  res.status(201).json({ message: "Review created!" });
+});
